@@ -1,0 +1,23 @@
+﻿div {
+    left: 10px;
+    position: relative;
+    font-family: Arial, sans-serif
+}
+.flipper {
+    cursor: pointer;
+}
+.PISystems {
+    color: black;
+}
+.AssetServers {
+    color: darkgrey;
+}
+.Databases {
+    color: grey;
+}
+.Elements {
+    color: darkblue;
+}
+.Attributes {
+    color: blue;
+}
