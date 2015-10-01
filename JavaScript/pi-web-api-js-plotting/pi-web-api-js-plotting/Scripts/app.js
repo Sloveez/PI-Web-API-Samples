@@ -14,8 +14,8 @@
    limitations under the License.
  ***************************************************************************/
 
-var baseUrl = "https://dng-code.osisoft.int/piwebapi";
-var piServer = "DNG-PI2012";
+var baseUrl = "https://myserver/piwebapi";
+var piServer = "MyPIDataArchive";
 var piTagWebIds = {};
 
 // Plot options
