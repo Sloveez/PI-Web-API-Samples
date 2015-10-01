@@ -1,0 +1,59 @@
+﻿<!---------------------------------------------------------------------------
+   Copyright 2015 OSIsoft, LLC.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ --------------------------------------------------------------------------->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Plotting with PI Web API</title>
+	<meta charset="utf-8" />
+    <link rel="stylesheet" type="text/css" href="Content/bootstrap.min.css" />
+</head>
+<body>
+    <div class="container">
+        <h1>Plotting with PI Web API</h1>
+        <br />
+        <div id="nav">
+            
+            <!-- Tag search -->
+            <form class="form-inline">
+                <input type="text" class="form-control" id="tagmask-text" placeholder="Tag Mask" />
+                <button type="button" id="search-btn" class="btn btn-default" disabled>Search for tags</button>
+            </form>
+            <br />
+
+            <!-- Information to plot -->
+            <form class="form-inline">
+                <select class="form-control" id="tag-select"></select>
+                <div class="form-group">
+                    <input type="text" class="form-control" id="start-time-text" placeholder="Start time" />
+                    <input type="text" class="form-control" id="end-time-text" placeholder="End time" />
+                </div>
+                <button type="submit" id="plot-btn" class="btn btn-primary" disabled>Plot</button>
+            </form>
+            <br />
+
+        </div>
+
+        <!-- Placeholder for plot -->
+        <div id="plot" style="width:800px; height:400px"></div>
+    </div>
+
+    <script type="text/javascript" src="Scripts/jquery-2.1.4.min.js"></script>
+    <script type="text/javascript" src="Scripts/flot/jquery.flot.min.js"></script>
+    <script type="text/javascript" src="Scripts/flot/jquery.flot.time.min.js"></script>
+    <script type="text/javascript" src="Scripts/bootstrap.min.js"></script>
+    <script type="text/javascript" src="Scripts/app.js"></script>
+</body>
+</html>
