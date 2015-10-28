@@ -15,7 +15,7 @@
  ***************************************************************************/
 
 var baseUrl = "https://myserver/piwebapi";
-var piServer = "MyPIDataArchive";
+var piServer = "MYPIDataArchive";
 var piTagWebIds = {};
 
 // Plot options
@@ -36,7 +36,7 @@ var makeBasicAuth = function (user, password) {
 // Ajax get request with basic authentication
 var getAjax = function (url, successCallBack) {
     $.ajax({
-        url: url,
+        url: encodeURI(url),
         method: 'GET',
         success: successCallBack,
         error: function (xhr) {
