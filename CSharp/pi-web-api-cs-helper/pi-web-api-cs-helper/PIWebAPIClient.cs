@@ -16,25 +16,28 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using System.Web;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System.Net.Http;
 
 namespace pi_web_api_cs_helper
 {
     public class PIWebAPIClient
     {
-        private HttpClient client;
+        private HttpClient _client;
+        private string _baseUrl;
 
         /// <summary>
         /// Initiating HttpClient using the default credentials.
         /// This can be used with Kerberos authentication for PI Web API.
         /// </summary>
-        public PIWebAPIClient()
+        public PIWebAPIClient(string url)
         {
-            client = new HttpClient(new HttpClientHandler() { UseDefaultCredentials = true });
+            _client = new HttpClient(new HttpClientHandler() { UseDefaultCredentials = true });
+            _baseUrl = url;
         }
 
         /// <summary>
@@ -43,11 +46,12 @@ namespace pi_web_api_cs_helper
         /// </summary>
         /// <param name="userName">User name for basic authentication</param>
         /// <param name="password">Password for basic authentication</param>
-        public PIWebAPIClient(string userName, string password)
+        public PIWebAPIClient(string url, string userName, string password)
         {
-            client = new HttpClient();
-            string authInfo = Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes(String.Format("{0}:{1}", userName, password)));
-            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", authInfo);
+            _client = new HttpClient();
+            string authInfo = Convert.ToBase64String(Encoding.ASCII.GetBytes(string.Format("{0}:{1}", userName, password)));
+            _client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", authInfo);
+            _baseUrl = url;
         }
 
         /// <summary>
@@ -56,18 +60,17 @@ namespace pi_web_api_cs_helper
         /// </summary>
         /// <param name="uri">Endpoint for the GET request.</param>
         /// <returns>Response from the server in a Json Object.</returns>
-        public async Task<JObject> GetAsync(string uri)
+        public async Task<dynamic> GetAsync(string uri)
         {
-            HttpResponseMessage response = await client.GetAsync(uri);
-
-            string content = await response.Content.ReadAsStringAsync();
-
+            HttpResponseMessage response = await _client.GetAsync(uri);
+            
+            dynamic content = await response.Content.ReadAsAsync<JToken>();
             if (!response.IsSuccessStatusCode)
             {
                 var responseMessage = "Response status code does not indicate success: " + (int)response.StatusCode + " (" + response.StatusCode + " ). ";
                 throw new HttpRequestException(responseMessage + Environment.NewLine + content);
             }
-            return JObject.Parse(content);
+            return content;
         }
 
         /// <summary>
@@ -78,8 +81,7 @@ namespace pi_web_api_cs_helper
         /// <param name="data">Content for the POST request.</param>
         public async Task PostAsync(string uri, string data)
         {
-            HttpResponseMessage response = await client.PostAsync(uri, new StringContent(data, Encoding.UTF8, "application/json"));
-
+            HttpResponseMessage response = await _client.PostAsync(uri, new StringContent(data, Encoding.UTF8, "application/json"));
             string content = await response.Content.ReadAsStringAsync();
 
             if (!response.IsSuccessStatusCode)
@@ -90,34 +92,91 @@ namespace pi_web_api_cs_helper
         }
 
         /// <summary>
-        /// Calling the GetAsync method and waiting for the results.
+        /// Get the list of PI Data Archives in "name, webId" pairs.
         /// </summary>
-        /// <param name="url">Endpoint for the GET request.</param>
-        /// <returns>Response from the server in a Json Object.</returns>
-        public JObject GetRequest(string url)
+        /// <returns>Dictionary of PI Data Archives.</returns>
+        public async Task<Dictionary<string, string>> GetDataServersWebIdAsync()
         {
-            Task<JObject> t = this.GetAsync(url);
-            t.Wait();
-            return t.Result;
+            string url = _baseUrl + "/dataservers";
+            dynamic result = await GetAsync(url);
+            Dictionary<string, string> servers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var item in result.Items)
+            {
+                servers.Add(item.Name.Value, item.WebId.Value);
+            }
+            return servers;
         }
 
         /// <summary>
-        /// Calling the PostAsync method and waiting for the results.
+        /// Get the value of a particular PI tag.
         /// </summary>
-        /// <param name="url">Endpoint for the POST request.</param>
-        /// <param name="data">Content for the POST request.</param>
-        public void PostRequest(string url, string data)
+        /// <param name="serverWebId">WebId of the PI Data Archive.</param>
+        /// <param name="tagName">Name of the PI tag.</param>
+        /// <returns>Value of the tag.</returns>
+        public async Task<dynamic> GetTagValueAsync(string serverWebId, string tagName)
         {
-            Task t = this.PostAsync(url, data);
-            t.Wait();
+            string url = await GetTagValueLink(serverWebId, tagName);
+            dynamic result = await GetAsync(url);
+            return result.Value;
         }
 
+        /// <summary>
+        /// Write a value at current time to a particular PI tag.
+        /// </summary>
+        /// <param name="serverWebId">WebId of the PI Data Archive.</param>
+        /// <param name="tagName">Name of the PI tag.</param>
+        /// <param name="valueToWrite">Value to write.</param>
+        public async Task WriteTagValueAsync(string serverWebId, string tagName, string valueToWrite)
+        {
+            string url = await GetTagValueLink(serverWebId, tagName);
+            object payload = new
+            {
+                Value = valueToWrite
+            };
+            string data = JsonConvert.SerializeObject(payload);
+            await PostAsync(url, data);
+        }
+
+        /// <summary>
+        /// Get the value link for a specific PI tag.
+        /// </summary>
+        /// <param name="serverWebId">WebId of the PI Data Archive.</param>
+        /// <param name="tagName">Name of the PI tag.</param>
+        /// <returns>Link to read/write a single value.</returns>
+        private async Task<string> GetTagValueLink(string serverWebId, string tagName)
+        {
+            string url = _baseUrl + "/dataservers/" + serverWebId + "/points?nameFilter=" + HttpUtility.UrlEncode(tagName);
+            dynamic result = await GetAsync(url);
+            if (result.Items.Count > 0)
+            {
+                return result.Items[0].Links.Value;
+            }
+            else
+            {
+                throw new InvalidOperationException("Tag is not found.");
+            }
+        }
+
+        public async Task<dynamic> SearchAsync(string query, string scope, string fields, int count = 10, int start = 0)
+        {
+            string url = _baseUrl + "/search/query?q=" + HttpUtility.UrlEncode(query) + "&count=" + count + "&start" + start;
+            if (!string.IsNullOrEmpty(scope))
+            {
+                url += "&scope=" + scope;
+            }
+            if (!string.IsNullOrEmpty(fields))
+            {
+                url += "&fields=" + fields;
+            }
+            return await GetAsync(url);
+        }
+        
         /// <summary>
         /// Disposing the HttpClient.
         /// </summary>
         public void Dispose()
         {
-            client.Dispose();
+            _client.Dispose();
         }
     }
 }

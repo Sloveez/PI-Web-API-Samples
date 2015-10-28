@@ -16,12 +16,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using pi_web_api_cs_helper;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace pi_web_api_cs_readwritetag
 {
@@ -35,24 +30,45 @@ namespace pi_web_api_cs_readwritetag
             string userName = Console.ReadLine();
             Console.Write("Enter password: ");
             string password = GetPassword();
-            PIWebAPIClient client = new PIWebAPIClient(userName, password);
+            PIWebAPIClient client = new PIWebAPIClient(baseUrl, userName, password);
 
             try
             {
-                GetKST(client);
+                Console.WriteLine("Getting list of PI Data Archives...");
+                Dictionary<string, string> serversWebId = client.GetDataServersWebIdAsync().Result;
+                foreach (var server in serversWebId)
+                {
+                    Console.WriteLine(server.Key);
+                }
                 do
                 {
-                    string tagPath = GetTagPath();
+                    Console.Write("Please type in name of the PI Data Archive: ");
+                    string myPI = Console.ReadLine();
+                    Console.Write("Please type in name of the tag: ");
+                    string myTag = Console.ReadLine();
+
                     if (IsRead())
                     {
-                        GetTagValue(client, tagPath);
+                        dynamic value = client.GetTagValueAsync(serversWebId[myPI], myTag).Result;
+                        Console.WriteLine("Current value = {0}", value);
                     }
                     else
                     {
-                        WriteTagValue(client, tagPath);
+                        Console.Write("Value to write? ");
+                        string valueToWrite = Console.ReadLine();
+                        client.WriteTagValueAsync(serversWebId[myPI], myTag, valueToWrite).Wait();
+                        Console.WriteLine("Value written.");
                     }
                     Console.WriteLine("Press any key to continue (esc to exit)...");
                 } while (Console.ReadKey().Key != ConsoleKey.Escape);
+            }
+            catch (InvalidOperationException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            catch (KeyNotFoundException)
+            {
+                Console.WriteLine("The specified PI Data Archive cannot be found.");
             }
             catch (AggregateException ex)
             {
@@ -88,80 +104,7 @@ namespace pi_web_api_cs_readwritetag
             Console.WriteLine();
             return password;
         }
-
-        // Display the list of PI Data Archives
-        private static void GetKST(PIWebAPIClient client)
-        {
-            Console.WriteLine("Getting list of PI Data Archives...");
-            string url = baseUrl + "/dataservers";
-            JObject jobj = client.GetRequest(url);
-            if (jobj["Items"] != null)
-            {
-                for (int i = 0, num = jobj["Items"].Count(); i < num; i++)
-                {
-                    Console.WriteLine(jobj["Items"][i]["Name"]);
-                }
-            }
-        }
-
-        // Get the name of the PI Data Archive and name of the PI tag.
-        private static string GetTagPath()
-        {
-            Console.Write("Please type in name of the PI Data Archive: ");
-            string myPI = Console.ReadLine();
-            Console.Write("Please type in name of the tag: ");
-            string myTag = Console.ReadLine();
-            return string.Format("\\\\{0}\\{1}", myPI, myTag);
-        }
-
-        // Get the most recent value of the PI tag.
-        private static void GetTagValue(PIWebAPIClient client, string path)
-        {
-            Console.WriteLine("Getting tag value...");
-            string url = GetTagUrl(client, path);
-            if (!url.Equals("Error"))
-            {
-                JObject jobj = client.GetRequest(url);
-                if (jobj["Value"] != null)
-                {
-                    Console.WriteLine("Current value = {0}", jobj["Value"]);
-                }
-            }
-        }
-
-        // Write value to the tag at current time.
-        private static void WriteTagValue(PIWebAPIClient client, string path)
-        {
-            Console.Write("Value to write? ");
-            string valueToWrite = Console.ReadLine();
-            string url = GetTagUrl(client, path);
-            if (!url.Equals("Error"))
-            {
-                object payload = new
-                {
-                    value = valueToWrite
-                };
-                string data = JsonConvert.SerializeObject(payload);
-                client.PostRequest(url, data);
-                Console.WriteLine("Value written.");
-            }
-        }
-
-        // Get the PI Web API endpoint from the tag path.
-        private static string GetTagUrl(PIWebAPIClient client, string path)
-        {
-            string url = baseUrl + "/points?path=" + path;
-            JObject jobj = client.GetRequest(url);
-            if (jobj["Links"]["Value"] != null)
-            {
-                return jobj["Links"]["Value"].ToString();
-            }
-            else
-            {
-                return "Error";
-            }
-        }
-
+        
         // Return true if user enters r or R, false if user enters w or W.
         private static bool IsRead()
         {
