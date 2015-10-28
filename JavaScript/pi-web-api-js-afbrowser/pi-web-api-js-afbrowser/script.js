@@ -23,6 +23,13 @@ var childrenMap = {
     Attributes: ['Attributes']
 };
 
+// Get base64-encoded string for basic authentication
+var makeBasicAuth = function (user, password) {
+    var tok = user + ':' + password;
+    var hash = window.btoa(tok);
+    return "Basic " + hash;
+};
+
 // Constructor for the node object
 function node(name, type, links, parentDiv) {
     this.type = type;
@@ -47,7 +54,7 @@ function loadChildren(n) {
                 console.log(xhr.responseText);
             },
             beforeSend: function (xhr) {
-                xhr.setRequestHeader('Authorization', 'Basic xxx');
+                xhr.setRequestHeader('Authorization', makeBasicAuth('username', 'password'));
             }
         })
     });
