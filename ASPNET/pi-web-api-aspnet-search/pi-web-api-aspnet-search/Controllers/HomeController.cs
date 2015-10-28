@@ -48,24 +48,8 @@ namespace pi_web_api_aspnet_search.Controllers
         {
             PIWebAPIClient client = new PIWebAPIClient("https://myserver/piwebapi");
 
-            string query; 
-            if (!model.Option.Equals("all"))
-            {
-                query = model.Option + ":" + model.Query;
-            }
-            else
-            {
-                query = model.Query;
-            }
-            int count;
-            if (model.Count.HasValue)
-            {
-                count = (int)model.Count;
-            }
-            else
-            {
-                count = 10;
-            }
+            string query = model.Option.Equals("all") ? model.Query : model.Option + ":" + model.Query;
+            int count = model.Count.HasValue ? (int)model.Count : 10;
             
             try
             {
