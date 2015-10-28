@@ -26,6 +26,13 @@ var options = {
     }
 };
 
+// Get base64-encoded string for basic authentication
+var makeBasicAuth = function (user, password) {
+    var tok = user + ':' + password;
+    var hash = window.btoa(tok);
+    return "Basic " + hash;
+};
+
 // Ajax get request with basic authentication
 var getAjax = function (url, successCallBack) {
     $.ajax({
@@ -36,7 +43,7 @@ var getAjax = function (url, successCallBack) {
             console.log(xhr.responseText);
         },
         beforeSend: function (xhr) {
-            xhr.setRequestHeader('Authorization', 'Basic xxx');
+            xhr.setRequestHeader('Authorization', makeBasicAuth('username', 'password'));
         }
     });
 }
