@@ -16,13 +16,10 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Web;
+using System.Threading.Tasks;
 using System.Web.Mvc;
 using pi_web_api_aspnet_search.Models;
-using pi_web_api_aspnet_search.Helpers;
-using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
+using pi_web_api_cs_helper;
 
 namespace pi_web_api_aspnet_search.Controllers
 {
@@ -49,31 +46,40 @@ namespace pi_web_api_aspnet_search.Controllers
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> Search(SearchModel model)
         {
-            PIWebAPIClient client = new PIWebAPIClient();
-            string url = "https://myserver/piwebapi/search/query?q=";
+            PIWebAPIClient client = new PIWebAPIClient("https://myserver/piwebapi");
+
+            string query; 
             if (!model.Option.Equals("all"))
             {
-                url += model.Option + ":" + model.Query;
+                query = model.Option + ":" + model.Query;
             }
             else
             {
-                url += model.Query;
+                query = model.Query;
             }
-            url += "&count=" + model.Count + "&fields=name;itemtype;webid";
-
+            int count;
+            if (model.Count.HasValue)
+            {
+                count = (int)model.Count;
+            }
+            else
+            {
+                count = 10;
+            }
+            
             try
             {
-                JObject jobj = await client.GetAsync(url);
-                List<SearchResult> results = new List<SearchResult>();
-                for (int i = 0; i < jobj["Items"].Count(); i++)
+                dynamic result = await client.SearchAsync(query, null, "name;itemtype;webid", count);
+                List<SearchResult> searchResults = new List<SearchResult>();
+                for (int i = 0; i < result.Items.Count; i++)
                 {
-                    SearchResult result = new SearchResult();
-                    result.Name = jobj["Items"][i]["Name"].ToString();
-                    result.ItemType = jobj["Items"][i]["ItemType"].ToString();
-                    result.WebId = jobj["Items"][i]["WebID"].ToString();
-                    results.Add(result);
+                    SearchResult searchResult = new SearchResult();
+                    searchResult.Name = result.Items[i].Name.Value;
+                    searchResult.ItemType = result.Items[i].ItemType.Value;
+                    searchResult.WebId = result.Items[i].WebID.Value;
+                    searchResults.Add(searchResult);
                 }
-                return View(results);
+                return View(searchResults);
             }
             catch (Exception)
             {
@@ -84,7 +90,6 @@ namespace pi_web_api_aspnet_search.Controllers
             {
                 client.Dispose();
             }
-            
             
         }
 
