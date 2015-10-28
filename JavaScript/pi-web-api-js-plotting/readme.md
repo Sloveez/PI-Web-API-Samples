@@ -7,7 +7,7 @@ You can obtain the Visual Studio 2015 solution and the associated files from the
 In your own environment, make the following changes to the app.js file located in the Scripts folder.
 * Change the PI Web API endpoint at https://myserver/piwebapi by replacing myserver with the name of your PI Web API instance.
 * Change the piServer variable from "MyPIDataArchive" to the name of your PI Data Archive. 
-* In addition, the JavaScript aplication is using Basic Authentication to authenticate to the PI Web API server, and you will need to provide the Base64-encoded string of your username:password in the getAjax function. 
+* In addition, the JavaScript aplication is using Basic Authentication to authenticate to the PI Web API server, and you will need to provide the username and password in the getAjax function. Consider using a more secure form of authentication in production code.
 
 Don't forget to configure CORS settings for your PI Web API server accordingly.
 
