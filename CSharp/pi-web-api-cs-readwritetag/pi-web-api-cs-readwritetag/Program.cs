@@ -22,7 +22,7 @@ namespace pi_web_api_cs_readwritetag
 {
     class Program
     {
-        static string baseUrl = "https://yourserver/piwebapi";
+        static string baseUrl = "https://restdemo.osisoft.int/piwebapi";
 
         static void Main(string[] args)
         {
